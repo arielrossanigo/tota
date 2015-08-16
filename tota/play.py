@@ -3,7 +3,7 @@
 
 Usage:
     ./play.py --help
-    ./play.py RADIANT_HEROES DIRE_HEROES [-m MAP] [-s SIZE] [-d] [-b] [-f MAX_FRAMES] [-c] [-r REPLAY_DIR] [-q]
+    ./play.py RADIANT_HEROES DIRE_HEROES [-m MAP] [-s SIZE] [-d] [-b] [-f MAX_FRAMES] [-c] [-r REPLAY_DIR] [-q] [-n NO_STEPS]
 
     DIRE_HEROES and RADIANT_HEROES must be comma separated lists
 
@@ -22,10 +22,11 @@ Options:
     -r REPLAY_DIR        Save a json replay, which consists in *lots* of files
                          (1 per tick) inside the specified dir.
     -q                   Don't draw the map in the terminal.
+    -n NO_STEPS          Number of steps to play.
 """
 from docopt import docopt
 
-from tota.game import Game
+from tota.game import Game, timer
 from tota.drawers.terminal import TerminalDrawer
 from tota.drawers.json_replay import JsonReplayDrawer
 
@@ -73,7 +74,12 @@ def play():
              debug=debug,
              drawers=drawers)
     os.system('clear')
-    g.play(max_frames)
+    steps = arguments['-n']
+    if steps:
+        steps = int(steps)
+        print ("Playing {} steps...".format(steps))
+    g.play(max_frames, max_steps=steps)
+    print(timer.stats())
 
 
 if __name__ == '__main__':

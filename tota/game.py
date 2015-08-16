@@ -4,6 +4,7 @@ from tota.world import World
 from tota.things import Ancient, Hero, Creep, Tower
 from tota.utils import closes_empty_position, distance
 from tota import settings
+from time_profiler import profile_time, timer
 
 
 def get_hero_function(name):
@@ -86,18 +87,14 @@ class Game:
             message = "Can't spawn {} near its ancient".format(thing.name)
             raise Exception(message)
 
-    def play(self, frames_per_second=2.0):
+    @profile_time(timer)
+    def play(self, frames_per_second=2.0, max_steps=None):
         """Game main loop, ending in a game result with description."""
-        while True:
-            # spawn creep wave
-            if self.world.t % settings.CREEP_WAVE_COOLDOWN == 0:
-                for team in (settings.TEAM_RADIANT, settings.TEAM_DIRE):
-                    for i in range(settings.CREEP_WAVE_SIZE):
-                        creep = Creep(team)
-                        self.spawn_near_ancient(creep)
+        while max_steps is None or self.world.t < max_steps:
+            self.spawn_creep_wave()
 
             self.spawn_heroes()
-            self.world.step()
+            self.make_world_step()
             self.update_experience()
             self.clean_deads()
 
@@ -107,7 +104,7 @@ class Game:
 
             if self.debug:
                 input()
-            else:
+            elif frames_per_second > 0:
                 time.sleep(1.0 / frames_per_second)
 
             if self.game_ended():
@@ -117,12 +114,26 @@ class Game:
 
                 return description
 
+    #@profile_time(timer)
+    def spawn_creep_wave(self):
+        if self.world.t % settings.CREEP_WAVE_COOLDOWN == 0:
+            for team in (settings.TEAM_RADIANT, settings.TEAM_DIRE):
+                for i in range(settings.CREEP_WAVE_SIZE):
+                    creep = Creep(team)
+                    self.spawn_near_ancient(creep)
+
+    #@profile_time(timer)
+    def make_world_step(self):
+        self.world.step()
+
+    #@profile_time(timer)
     def spawn_heroes(self):
         for hero in self.heroes:
             if hero.respawn_at == self.world.t:
                 hero.life = hero.max_life
                 self.spawn_near_ancient(hero)
 
+    #@profile_time(timer)
     def update_experience(self):
         for thing in list(self.world.things.values()):
             if not thing.alive:
@@ -135,6 +146,7 @@ class Game:
                         elif isinstance(thing, Tower):
                             hero.xp += settings.XP_TOWER_DEAD
 
+    #@profile_time(timer)
     def clean_deads(self):
         """Remove dead things from the world."""
         for thing in list(self.world.things.values()):
@@ -143,6 +155,7 @@ class Game:
                 if isinstance(thing, Hero):
                     thing.respawn_at = self.world.t + settings.HERO_RESPAWN_COOLDOWN
 
+    #@profile_time(timer)
     def draw(self):
         """Call each drawer instance."""
         for drawer in self.drawers:
@@ -153,6 +166,7 @@ class Game:
         return [ancient for ancient in self.ancients.values()
                 if not ancient.alive]
 
+    #@profile_time(timer)
     def game_ended(self):
         """Has the game ended?"""
         return len(self.destroyed_ancients()) > 0

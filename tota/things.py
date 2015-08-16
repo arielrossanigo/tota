@@ -2,6 +2,7 @@ from tota import actions
 from tota import settings
 from tota.utils import distance, closest, sort_by_distance, possible_moves
 
+#from time_profiler import timer, profile_time
 
 class Thing:
     ICON = '?'
@@ -42,8 +43,8 @@ class Thing:
     def max_life(self, value):
         self._max_life = value
 
-    def get_action(self, things, t):
-        result = self.act(things, t)
+    def get_action(self, things, t, twt):
+        result = self.act(things, t, twt)
         if result is None:
             self.last_action = None
             self.last_target = None
@@ -54,7 +55,7 @@ class Thing:
 
         return result
 
-    def act(self, things, t):
+    def act(self, things, t, twt):
         return None
 
     def can(self, action, t):
@@ -99,10 +100,12 @@ class Creep(Thing):
             'move': 0,
         }
 
-    def act(self, things, t):
+    #@profile_time(timer)
+    def act(self, things, t, things_without_trees):
         enemy_team = settings.ENEMY_TEAMS[self.team]
-        enemies = [thing for thing in things.values()
+        enemies = [thing for thing in things_without_trees
                    if thing.team == enemy_team]
+
         closest_enemy = closest(self, enemies)
         closest_enemy_distance = distance(self, closest_enemy)
 
@@ -145,9 +148,9 @@ class Tower(Thing):
             'attack': 0,
         }
 
-    def act(self, things, t):
+    def act(self, things, t, twt):
         enemy_team = settings.ENEMY_TEAMS[self.team]
-        enemies = [thing for thing in things.values()
+        enemies = [thing for thing in twt
                    if thing.team == enemy_team]
         closest_enemy = closest(self, enemies)
         if distance(self, closest_enemy) <= settings.TOWER_ATTACK_DISTANCE:
@@ -196,7 +199,8 @@ class Hero(Thing):
 
         return health * health_multiplier
 
-    def act(self, things, t):
+    #@profile_time(timer)
+    def act(self, things, t, twt):
         return self.act_function(self, things, t)
 
 

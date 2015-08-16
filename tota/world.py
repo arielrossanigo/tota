@@ -4,6 +4,8 @@ from tota.things import Tree, Tower, Ancient
 from tota.utils import inside_map
 from tota import settings
 
+from time_profiler import profile_time, timer
+
 
 class World:
     """World where to play the game."""
@@ -46,18 +48,22 @@ class World:
         random.shuffle(actions)
         self.perform_actions(actions)
 
+    #@profile_time(timer)
     def get_actions(self):
         """For each thing, call its act method to get its desired action."""
         actions = []
         actors = [thing for thing in self.things.values()
                   if thing.acts]
+        things_without_trees = [thing for thing in self.things.values()
+                                if not isinstance(thing, Tree)]
+
         for thing in actors:
             if thing.disabled_until > self.t:
                 message = 'disabled until {}'.format(thing.disabled_until)
                 self.event(thing, message)
             else:
                 try:
-                    act_result = thing.get_action(self.things, self.t)
+                    act_result = thing.get_action(self.things, self.t, things_without_trees)
                     if act_result is None:
                         message = 'is idle'
                     else:
@@ -78,6 +84,7 @@ class World:
 
         return actions
 
+    #@profile_time(timer)
     def perform_actions(self, actions):
         """Execute actions, and add their results as events."""
         for thing, action, target_position in actions:
